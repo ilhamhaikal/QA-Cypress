@@ -1,88 +1,105 @@
+/// <reference types="cypress" />
+import LoginPage from "../pom/login/login.cy";
+
 describe('OrangeHRM Login Page Tests', () => {
-  beforeEach(() => {
-    // Kunjungi halaman login
-    cy.visit('https://opensource-demo.orangehrmlive.com/web/index.php/auth/login');
-  });
+  const validUsername = 'Admin';
+  const validPassword = 'admin123';
+  const invalidUsername = 'InvalidUser ';
+  const invalidPassword = 'invalidPassword';
 
+beforeEach(() => {
+  // Kunjungi halaman login sebelum setiap pengujian
+  LoginPage.visit();
+});
+
+context('UI Elements Validation', () => {
   it('should display the login page correctly', () => {
-    // Periksa elemen halaman login
-    cy.get('img[alt="company-branding"]').should('be.visible'); // Logo terlihat
-    cy.get('input[name="username"]').should('be.visible'); // Input username terlihat
-    cy.get('input[name="password"]').should('be.visible'); // Input password terlihat
-    cy.get('button[type="submit"]').should('be.visible').and('contain', 'Login'); // Tombol login terlihat
+    LoginPage.verifyLogoVisible();
+    LoginPage.verifyUsernameFieldVisible();
+    LoginPage.verifyPasswordFieldVisible();
+    LoginPage.verifyLoginButtonVisible();
   });
 
-  it('should successfully login with valid credentials', () => {
-    // Isi username dan password valid
-    cy.get('input[name="username"]').type('Admin');
-    cy.get('input[name="password"]').type('admin123');
-    cy.get('button[type="submit"]').click();
+  it('should mask the password field', () => {
+    LoginPage.verifyPasswordFieldMasked();
+  });
 
+  it('should navigate to the Forgot Password page when the link is clicked', () => {
+    LoginPage.navigateToForgotPassword();
+    LoginPage.verifyForgotPasswordPage();
+  });
+});
+
+context('Login Functionality Tests', () => {
+  it('should successfully login with valid credentials', () => {
+    LoginPage.enterUsername(validUsername);
+    LoginPage.enterPassword(validPassword);
+    LoginPage.submit();
     // Verifikasi login berhasil
     cy.url().should('include', '/dashboard/index'); // URL berubah ke dashboard
-    cy.get('.oxd-topbar-header-title').should('contain', 'Dashboard'); // Teks Dashboard muncul
+    LoginPage.verifyDashboardTitle('Dashboard'); // Teks Dashboard muncul
   });
 
   it('should show error with invalid credentials', () => {
-    // Isi username dan password tidak valid
-    cy.get('input[name="username"]').type('invalidUser');
-    cy.get('input[name="password"]').type('invalidPassword');
-    cy.get('button[type="submit"]').click();
-
+    LoginPage.enterUsername(invalidUsername);
+    LoginPage.enterPassword(invalidPassword);
+    LoginPage.submit();
     // Verifikasi pesan error muncul
-    cy.get('.oxd-alert-content')
-      .should('be.visible')
-      .and('contain', 'Invalid credentials');
+    LoginPage.verifyLoginError('Invalid credentials');
   });
 
   it('should show error for invalid username and valid password', () => {
-    cy.get('input[name="username"]').type('InvalidUser'); // Masukkan username salah
-    cy.get('input[name="password"]').type('admin123'); // Masukkan password valid
-    cy.get('button[type="submit"]').click(); // Klik tombol login
-  
+    LoginPage.enterUsername(invalidUsername);
+    LoginPage.enterPassword(validPassword);
+    LoginPage.submit();
     // Verifikasi pesan error muncul
-    cy.get('.oxd-alert-content').should('be.visible').and('contain', 'Invalid credentials');
+    LoginPage.verifyLoginError('Invalid credentials');
   });
 
   it('should show validation error for empty username', () => {
-    cy.get('input[name="password"]').type('admin123'); // Masukkan password
-    cy.get('button[type="submit"]').click(); // Klik tombol login
-  
+    LoginPage.enterPassword(validPassword);
+    LoginPage.submit();
     // Verifikasi pesan validasi
-    cy.get('.oxd-input-group__message').eq(0).should('contain', 'Required'); // Validasi username
+    LoginPage.verifyRequiredMessage(0); // Validasi username
   });
 
   it('should show validation errors for empty fields', () => {
-      // Klik tombol login tanpa mengisi form
-      cy.get('button[type="submit"]').click();
-    
-      // Verifikasi pesan validasi username
-      cy.contains('span.oxd-input-group__message', 'Required', { timeout: 2000 })
-        .should('be.visible'); // Pesan validasi harus terlihat
-    
-      // Verifikasi pesan validasi password
-      cy.contains('span.oxd-input-group__message', 'Required', { timeout: 2000 })
-        .should('be.visible'); // Pesan validasi harus terlihat
-    });
-
-  it('should mask the password field', () => {
-    // Pastikan input password tersamarkan
-    cy.get('input[name="password"]').should('have.attr', 'type', 'password');
+    LoginPage.submit();
+    // Verifikasi pesan validasi username
+    LoginPage.verifyRequiredMessage(0); // Verifikasi pesan validasi password
+    LoginPage.verifyRequiredMessage(1);
   });
-  
-  it('should navigate to the Forgot Password page when the link is clicked', () => {
-      // Klik tombol "Forgot your password?"
-      cy.contains('Forgot your password?').click();
-    
-      // Verifikasi URL setelah navigasi
-      cy.url().should('include', '/auth/requestPasswordResetCode');
-    
-      // Verifikasi bahwa halaman "Forgot Password" ditampilkan
-      cy.get('h6').should('contain', 'Reset Password'); // Pastikan elemen judul halaman sesuai
-    });
+});
 
-    it('should verify the target page of OrangeHRM, Inc.', () => {
-      cy.request('https://www.orangehrm.com/').its('status').should('eq', 200); // Pastikan halaman dapat diakses
-    });
+context('Network Request Tests', () => {
+  it('should verify the target page of OrangeHRM, Inc.', () => {
+    cy.request('https://www.orangehrm.com/').its('status').should('eq', 200); // Pastikan halaman dapat diakses
+  });
 
+  it('Test Web Automation using Intercept', () => {
+    LoginPage.enterUsername(validUsername);
+    LoginPage.enterPassword(validPassword);
+    cy.intercept('GET', '**/action-summary').as('actionSummary');
+    LoginPage.submit();
+    cy.wait('@actionSummary').its('response.statusCode').should('eq', 200); // Verifikasi status kode respons
+  });
+  context('Responsive Design Tests', () => {
+    const viewports = [
+        { name: 'mobile', width: 375, height: 667 },
+        { name: 'tablet', width: 768, height: 1024 },
+        { name: 'desktop', width: 1280, height: 800 },
+    ];
+
+    viewports.forEach((viewport) => {
+        it(`should display the login page correctly on ${viewport.name}`, () => {
+            cy.viewport(viewport.width, viewport.height);
+            LoginPage.visit();
+            LoginPage.verifyLogoVisible();
+            LoginPage.verifyUsernameFieldVisible();
+            LoginPage.verifyPasswordFieldVisible();
+            LoginPage.verifyLoginButtonVisible();
+        });
+    });
+});
+});
 });
