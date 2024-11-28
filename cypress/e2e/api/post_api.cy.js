@@ -1,28 +1,4 @@
-describe("Reqres API Testing", () => {
-    it("GET - List Users", () => {
-      cy.request("GET", "/users?page=2").then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body).to.have.property("data");
-      });
-    });
-  
-    it("GET - Single User", () => {
-      cy.request("GET", "/users/2").then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body.data).to.have.property("id", 2);
-      });
-    });
-  
-    it("GET - Single User Not Found", () => {
-      cy.request({
-        method: "GET",
-        url: "/users/23",
-        failOnStatusCode: false,
-      }).then((response) => {
-        expect(response.status).to.eq(404);
-      });
-    });
-  
+describe("POST Requests - Reqres API", () => {
     it("POST - Create User", () => {
       cy.request("POST", "/users", {
         name: "morpheus",
@@ -31,32 +7,6 @@ describe("Reqres API Testing", () => {
         expect(response.status).to.eq(201);
         expect(response.body).to.have.property("name", "morpheus");
         expect(response.body).to.have.property("job", "leader");
-      });
-    });
-  
-    it("PUT - Update User", () => {
-      cy.request("PUT", "/users/2", {
-        name: "morpheus",
-        job: "zion resident",
-      }).then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body).to.have.property("job", "zion resident");
-      });
-    });
-  
-    it("PATCH - Update User", () => {
-      cy.request("PATCH", "/users/2", {
-        name: "morpheus",
-        job: "new leader",
-      }).then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body).to.have.property("job", "new leader");
-      });
-    });
-  
-    it("DELETE - Delete User", () => {
-      cy.request("DELETE", "/users/2").then((response) => {
-        expect(response.status).to.eq(204);
       });
     });
   
